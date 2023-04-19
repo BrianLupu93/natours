@@ -1,5 +1,6 @@
 // const fs = require('fs');
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('./../utils/apiFeatures');
 
 exports.aliasTopTour = (req, res, next) => {
   req.query.limit = '5';
@@ -70,53 +71,59 @@ exports.getAllTours = async (req, res) => {
     console.log(req.query);
     // Buidl the query
     // 1A. Filtering
-    const queryObj = { ...req.query };
-    const excludeFields = ['page', 'sort', 'limit', 'fields'];
-    excludeFields.forEach((el) => delete queryObj[el]);
+    // const queryObj = { ...req.query };
+    // const excludeFields = ['page', 'sort', 'limit', 'fields'];
+    // excludeFields.forEach((el) => delete queryObj[el]);
 
-    // 1B. Advanced filtering
-    let queryString = JSON.stringify(queryObj);
-    queryString = queryString.replace(
-      /\b(gt|gte|lt|lte)\b/g,
-      (match) => `$${match}`
-    );
+    // // 1B. Advanced filtering
+    // let queryString = JSON.stringify(queryObj);
+    // queryString = queryString.replace(
+    //   /\b(gt|gte|lt|lte)\b/g,
+    //   (match) => `$${match}`
+    // );
     // const query = Tour.find().where('duration').equals(5).where('difficulty').equals('easy');
 
-    let query = Tour.find(JSON.parse(queryString));
+    // let query = Tour.find(JSON.parse(queryString));
 
     // 2. Sorting
 
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(req.query.sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
+    // if (req.query.sort) {
+    //   const sortBy = req.query.sort.split(',').join(' ');
+    //   query = query.sort(req.query.sortBy);
+    // } else {
+    //   query = query.sort('-createdAt');
+    // }
 
     //  3. Fields Limiting
 
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v');
-    }
+    // if (req.query.fields) {
+    //   const fields = req.query.fields.split(',').join(' ');
+    //   query = query.select(fields);
+    // } else {
+    //   query = query.select('-__v');
+    // }
 
     // Pagination
     // ?page=2&limit=10 === 1-10 page1, 11-20 page2, 21-30 page3, 31-40 page4 ....
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 100;
-    const skip = (page - 1) * limit;
+    // const page = req.query.page * 1 || 1;
+    // const limit = req.query.limit * 1 || 100;
+    // const skip = (page - 1) * limit;
 
-    query = query.skip(skip).limit(limit);
+    // query = query.skip(skip).limit(limit);
 
-    if (req.query.page) {
-      const toursNumber = await query.countDocuments();
-      if (skip >= toursNumber) throw new Error('Page does not exist');
-    }
+    // if (req.query.page) {
+    //   const toursNumber = await query.countDocuments();
+    //   if (skip >= toursNumber) throw new Error('Page does not exist');
+    // }
 
     // Execute the query
-    const tours = await query;
+
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limit()
+      .paginate();
+    const tours = await features.query;
 
     // Send Rescponse
     res.status(200).json({
